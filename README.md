@@ -10,7 +10,9 @@ This repo stores R code for reproducing the simulation studies and data analysis
 
 - __simulation-CR-TND-100rep.R__ R code for repeating the first simulation study 100 times and producing Figure 1.
 
-- __simulation-SW-TND.R__ R code for the second simulation study.
+- __simulation-dose-response.R__ R code for the second simulation study.
+
+- __simulation-SW-TND.R__ R code for the third simulation study.
 
 - __data-analysis.R__ R code for the data analysis.
 
