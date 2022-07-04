@@ -164,17 +164,22 @@ s_result <- foreach(i = 1:100, .packages = c("tidyverse", "lme4", "geepack")) %d
 stopCluster(cl)
 
 # visualization ----------------
+library(ggpattern)
 bias_summary <- t(as.matrix(map_dfc(s_result, ~.[,1])))
 colnames(bias_summary) <- c("Odds\ ratio", "Log-contrast", "Covariate-adjusted", "Test-positive\ fraction", "GLMM", "GEE")
 bias_summary <- abs(bias_summary) %>% data.frame(check.names = FALSE) %>%
   pivot_longer(`Odds ratio`:GEE, names_to = "Estimator", values_to = "Absolute_bias") %>%
   mutate(bin = cut_width(Absolute_bias, width = 0.04, center = 0.02)) %>%
   mutate(Estimator = factor(Estimator, levels = c("Odds ratio", "Test-positive fraction", "GLMM", "GEE", "Log-contrast", "Covariate-adjusted")))
-levels(bias_summary$bin) <- c(levels(bias_summary$bin)[1:5], rep("> 0.2", 6))
+levels(bias_summary$bin) <- c(levels(bias_summary$bin)[1:5], rep("> 0.2",6))
 p_bias <- ggplot(bias_summary) + 
-  geom_bar(aes(bin, fill = Estimator), width= 0.5 ,stat="count",position = "dodge") + 
+  geom_bar_pattern(aes(bin, pattern = Estimator, pattern_angle = Estimator, pattern_fill = Estimator,  pattern_spacing = Estimator),
+                   colour = 'black', fill = 'white', width= 0.6 ,stat="count",position = "dodge") + 
+  scale_pattern_fill_manual(values = c("black","white","black","white", "black","black")) +
+  scale_pattern_spacing_manual(values = c(0.02,0.05,0.02,0.05,0.01, 0.02)) +
   theme_bw() +
-  theme(text = element_text(size =16)) +
+  theme(text = element_text(size =30, family = "Times"), legend.position = "bottom", 
+        legend.background = element_rect(color = "black"), legend.text = element_text(size = 30), legend.key.size = unit(1, "cm")) +
   labs(x = "Absolute bias", y = "Percentage (%)")
 
 cp_summary <- t(as.matrix(map_dfc(s_result, ~.[,5])))
@@ -183,10 +188,19 @@ cp_summary <- abs(cp_summary) %>% data.frame(check.names = FALSE) %>%
   pivot_longer(`Odds ratio`:GEE, names_to = "Estimator", values_to = "CP") %>%
   mutate(bin = cut_width(CP, width = 0.04, center = 0.95)) %>%
   mutate(Estimator = factor(Estimator, levels = c("Odds ratio", "Test-positive fraction", "GLMM", "GEE", "Log-contrast", "Covariate-adjusted")))
+levels(cp_summary$bin) <- c(levels(cp_summary$bin)[1:5], levels(cp_summary$bin)[5])
 p_cp <- ggplot(cp_summary) + 
-  geom_bar(aes(bin, fill = Estimator), width= 0.5 ,stat="count",position = "dodge") + 
+  geom_bar_pattern(aes(bin, pattern = Estimator, pattern_angle = Estimator, pattern_fill = Estimator,  pattern_spacing = Estimator), 
+                   colour = 'black', fill = 'white', width= 0.6 ,stat="count",position = "dodge") + 
+  scale_pattern_fill_manual(values = c("black","white","black","white", "black","black")) +
+  scale_pattern_spacing_manual(values = c(0.02,0.05,0.02,0.05,0.01, 0.02)) +
   theme_bw() +
-  theme(text = element_text(size =16)) +
+  theme(text = element_text(size =30, family = "Times"), legend.position = "bottom", legend.background = element_rect(color = "black")) +
   labs(x = "Coverage Probability", y = "Percentage (%)")
-p_combined <- cowplot::plot_grid(p_bias, p_cp, nrow = 2)
-cowplot::save_plot(plot = p_combined, filename = "figure1.png", base_height = 5, base_asp = 2)
+# p_combined <- cowplot::plot_grid(p_bias, p_cp, ncol = 2)
+# cowplot::save_plot(plot = p_combined, filename = "figure1-blackwhite.png", base_height = 10, base_asp = 2)
+leg <- cowplot::get_legend(p_bias)
+p_combined <- cowplot::plot_grid(p_bias+theme(legend.position='none'), p_cp+theme(legend.position='none'), ncol = 2)
+pp <- cowplot::plot_grid(p_combined, leg, ncol = 1, rel_heights = c(1, 0.12))
+cowplot::save_plot(plot = pp, filename = "figure1-blackwhite.png", base_height = 10, base_asp = 2.2)
+
