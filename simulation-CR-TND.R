@@ -127,19 +127,25 @@ population <- c(12747, 10179, 17702, 6471, 12936, 22085, 19587, 16026,
 Y0 <- round(X1 * population)
 Z0 <- round(X2 * population)
 sim_size <- 10000
-lambda <- 0.2
+lambda <- 0.6
 alpha <- rbeta(n = 24, shape1 = 0.5, shape2 = 0.5)
 # alpha <- rep(0.5, 24)
 # alpha[c(2,5,20,21)] <- 10
+ksi <- 0.1 # false negative rate
+eta <- 0.1 # false discovery rate
 simulated_data_CR <- map(1:sim_size, function(j){
   sim_Y0 <- rmultinom(1, size = sum(Y0), prob = Y0/sum(Y0)) * (2 * population)
   sim_Z0 <- rmultinom(1, size = sum(Z0), prob = Z0/sum(Z0)) / (2 * population)
   sim_Z1 <- alpha * sim_Z0
   sim_Y1 <- lambda * alpha * sim_Y0
+  obs_Y0 <- (1-ksi) * sim_Y0 + eta * sim_Z0
+  obs_Y1 <- (1-ksi) * sim_Y1 + eta * sim_Z1
+  obs_Z0 <- ksi * sim_Y0 + (1-eta) * sim_Z0
+  obs_Z1 <- ksi * sim_Y1 + (1-eta) * sim_Z1
   A <- sample(rep(0:1, each = 12), size = 24, replace = F)
   data.frame(A = A,
-             Y = A * sim_Y1 + (1-A) * sim_Y0,
-             Z = A * sim_Z1 + (1-A) * sim_Z0)
+             Y = A * obs_Y1 + (1-A) * obs_Y0,
+             Z = A * obs_Z1 + (1-A) * obs_Z0)
 })
 
 x1 <- as.matrix(map_dfc(simulated_data_CR, ~odds_ratio_est(.$Y, .$Z, .$A, lambda = lambda)))

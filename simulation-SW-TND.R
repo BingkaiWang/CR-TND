@@ -270,7 +270,8 @@ OFI_cases14 <-  t(matrix(OFI_cases14, ncol = 24)) %>% data.frame
 colnames(OFI_cases14) <- c("cluster_id", "OFI14")
 sim_size <- 10000
 alpha <- rbeta(n = 9*24, shape1 = 0.5, shape2 = 0.5) %>% matrix(nrow = 24, ncol = 9)
-lambda <- 1
+lambda <- 0.2
+ksi <- eta <- 0.1 # rates of imprecise tests
 n_dengue <- colSums(dengue_cases[,-1])
 dengue_p <- apply(dengue_cases[,-1], 2, function(x){x/sum(x)})
 n_OFI <- round(rnorm(sum(OFI_cases14[,-1])/n_dengue[9],mean=10,sd = 1) * n_dengue)
@@ -280,16 +281,20 @@ simulated_data_SW <- map(1:sim_size, function(j){
   sim_dengue_cases0 <- apply(dengue_cases[,-1], 2, function(x){rmultinom(1,size=sum(x), prob = x/sum(x))})
   sim_OFI_cases1 <- alpha * sim_OFI_cases0 
   sim_dengue_cases1 <- lambda * alpha * sim_dengue_cases0
+  obs_dengue_cases0 <- (1-ksi) * sim_dengue_cases0 + eta * sim_OFI_cases0
+  obs_dengue_cases1 <- (1-ksi) * sim_dengue_cases1 + eta * sim_OFI_cases1
+  obs_OFI_cases0 <- ksi * sim_dengue_cases0 + (1-eta) * sim_OFI_cases0
+  obs_OFI_cases1 <- ksi * sim_dengue_cases1 + (1-eta) * sim_OFI_cases1
   A <- sample(rep(2:9, each = 3), size = 24, replace = F)
   sim_OFI <- as.matrix(map_dfr(1:24, function(i){
-    temp <- sim_OFI_cases0[i,]
-    temp[A[i]:9] <- sim_OFI_cases1[i,A[i]:9]
+    temp <- obs_OFI_cases0[i,]
+    temp[A[i]:9] <- obs_OFI_cases1[i,A[i]:9]
     return(temp)
   }))
   colnames(sim_OFI) <- paste0(colnames(sim_OFI), "OFI")
   sim_dengue <- as.matrix(map_dfr(1:24, function(i){
-    temp <- sim_dengue_cases0[i,]
-    temp[A[i]:9] <- sim_dengue_cases1[i,A[i]:9]
+    temp <- obs_dengue_cases0[i,]
+    temp[A[i]:9] <- obs_dengue_cases1[i,A[i]:9]
     return(temp)
   }))
   colnames(sim_dengue) <- paste0(colnames(sim_dengue), "dengue")
